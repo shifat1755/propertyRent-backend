@@ -1,0 +1,52 @@
+# Python-related files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.env
+*.venv
+venv/
+.env
+
+# Alembic migrations
+alembic/versions/*.pyc
+alembic/versions/__pycache__/
+
+# Test-related files
+tests/__pycache__/
+tests/*.pyc
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs and temporary files
+*.log
+*.tmp
+*.out
+*.bak
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+.coverage
+htmlcov/
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Build and distribution files
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Docker-related files
+docker-compose.override.yml
+*.dockerignore
