@@ -1,9 +1,8 @@
 from fastapi import FastAPI
 
+from app.presentation.routes.user_routes import userRouter
 
-app = FastAPI()
+app = FastAPI(debug=True)
 
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+app.include_router(userRouter, prefix="/api", tags=["users"])
