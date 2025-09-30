@@ -25,7 +25,6 @@ userRouter = APIRouter()
 @userRouter.post("/users/", response_model=UserRead)
 async def create_user(user_create: UserCreate, db: Session = Depends(get_db)):
     usecase = UserUsecase(db)
-    usecase = UserUsecase(db)
     try:
         user = await usecase.create_user(user_create)
     except EmailAlreadyExistsError:
