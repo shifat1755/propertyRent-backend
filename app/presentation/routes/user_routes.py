@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.application.usecases.user_usecase import UserUsecase
-from app.domain.errors import EmailAlreadyExistsError, UsernameAlreadyExistsError
+from app.domain.errors import (
+    EmailAlreadyExistsError,
+    UsernameAlreadyExistsError,
+    UserNotFoundError,
+)
 from app.infrastructure.data.database import get_db
 from app.presentation.schemas.user_schema import (
     UserCreate,
@@ -37,8 +41,6 @@ async def create_user(user_create: UserCreate, db: Session = Depends(get_db)):
 # Get user by ID
 @userRouter.get("/users/{user_id}", response_model=UserRead)
 async def get_user(user_id: int, db: Session = Depends(get_db)):
-    if user_id <= 0:
-        raise HTTPException(status_code=400, detail="Invalid user ID")
     usecase = UserUsecase(db)
     user = await usecase.get_user(user_id)
     if not user:
@@ -62,19 +64,29 @@ async def update_user(
     user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)
 ):
     usecase = UserUsecase(db)
-    db_user = await usecase.get_user(user_id)
-    if not db_user:
+    try:
+        user = await usecase.update_user_by_id(user_id, user_update)
+    except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")
-    updated_user = await usecase.update_user(db_user, user_update)
-    return UserRead.model_validate(updated_user)
+    except EmailAlreadyExistsError:
+        raise HTTPException(status_code=400, detail="Email already exists")
+    except UsernameAlreadyExistsError:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    except Exception:
+        logger.exception("Error updating user")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    return UserRead.model_validate(user)
 
 
 # Delete user
 @userRouter.delete("/users/{user_id}", status_code=204)
 async def delete_user(user_id: int, db: Session = Depends(get_db)):
     usecase = UserUsecase(db)
-    db_user = await usecase.get_user(user_id)
-    if not db_user:
+    try:
+        await usecase.delete_user(user_id)
+    except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")
-    await usecase.delete_user(db_user)
+    except Exception:
+        logger.exception("Error deleting user")
+        raise HTTPException(status_code=500, detail="Internal server error")
     return

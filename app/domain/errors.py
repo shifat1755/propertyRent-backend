@@ -8,3 +8,9 @@ class UsernameAlreadyExistsError(Exception):
     """Raised when a username is already taken by another user."""
 
     pass
+
+
+class UserNotFoundError(Exception):
+    """Raised when a user is not found in the system."""
+
+    pass
