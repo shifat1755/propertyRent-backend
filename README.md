@@ -24,7 +24,7 @@
 #### Error Handling
 - Custom exceptions for user-related errors.
 
-### Upcoming:
+### ToDo:
 - LRU Cache implementation
 - Property Management(CRUD, DB, etc..)
 - Refactored User Module
