@@ -78,7 +78,7 @@ class UserUsecase:
         db_user = await self.repo.get_user_by_id(user_id)
         if not db_user:
             raise UserNotFoundError
-        self.repo.delete_user(db_user)
+        await self.repo.delete_user(db_user)
         await self.repo.db.commit()
         return
 
@@ -90,11 +90,17 @@ class UserUsecase:
             raise WrongCredentials
         accesstoken = self.jwt_handler.generate_access_token(
             subject=str(db_user.id),
-            extra_claims={"role": db_user.role, "user_type": db_user.user_type},
+            extra_claims={
+                "role": str(db_user.role),
+                "user_type": str(db_user.user_type),
+            },
         )
         refreshtoken = self.jwt_handler.generate_refresh_token(
             subject=str(db_user.id),
-            extra_claims={"role": db_user.role, "user_type": db_user.user_type},
+            extra_claims={
+                "role": str(db_user.role),
+                "user_type": str(db_user.user_type),
+            },
         )
 
         session_id = await self.redis_token_service.store(
@@ -107,3 +113,7 @@ class UserUsecase:
             session_id=session_id,
             user=db_user,
         )
+
+    async def logout(self, user_id: str, session_id: str) -> None:
+        await self.redis_token_service.revoke(user_id=user_id, session_id=session_id)
+        return
