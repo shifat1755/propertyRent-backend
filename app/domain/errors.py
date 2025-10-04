@@ -14,3 +14,9 @@ class UserNotFoundError(Exception):
     """Raised when a user is not found in the system."""
 
     pass
+
+
+class WrongCredentials(Exception):
+    """Raised when login credentials are incorrect."""
+
+    pass

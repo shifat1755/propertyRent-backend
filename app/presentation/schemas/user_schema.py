@@ -6,6 +6,17 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from app.infrastructure.data.models.user_model import UserRole, UserType
 
 
+def get_nested_example(model: type[any]) -> dict:
+    """Recursively get the example from a Pydantic model and its bases."""
+    example = {}
+    if hasattr(model, "model_config") and "json_schema_extra" in model.model_config:
+        example.update(model.model_config["json_schema_extra"].get("example", {}))
+    for base in model.__bases__:
+        if issubclass(base, BaseModel) and base is not BaseModel:
+            example.update(get_nested_example(base))
+    return example
+
+
 # --------------------------
 # Base schemas
 # --------------------------
@@ -67,23 +78,11 @@ class PasswordMixin(BaseModel):
 # --------------------------
 class UserCreate(UserBase, PasswordMixin):
     password: str = Field(..., min_length=8, max_length=72)
-
     model_config = ConfigDict(
         extra="forbid",
         use_enum_values=True,
         json_schema_extra={
-            "example": {
-                "email": "example@example.com",
-                "username": "example_user",
-                "password": "StrongPass1!",
-                "first_name": "John",
-                "last_name": "Doe",
-                "phone": "1234567890",
-                "bio": "This is an example bio.",
-                "avatar_url": "https://example.com/avatar.png",
-                "user_type": "tenant",
-                "role": "user",
-            }
+            "example": get_nested_example(UserBase) | {"password": "StrongPass1!"}
         },
     )
 
@@ -103,19 +102,8 @@ class UserUpdate(PasswordMixin):
     model_config = ConfigDict(
         extra="forbid",
         use_enum_values=True,
-        json_schema_extra={
-            "example": {
-                "username": "new_username",
-                "password": "NewStrongPass1!",
-                "first_name": "Jane",
-                "last_name": "Doe",
-                "phone": "0987654321",
-                "bio": "Updated bio",
-                "avatar_url": "https://example.com/new_avatar.png",
-                "user_type": "landlord",
-                "role": "admin",
-            }
-        },
+        json_schema_extra={"example": get_nested_example(UserBase)}
+        | {"password": "StrongPass1!"},
     )
 
 
@@ -162,26 +150,42 @@ class UserList(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "users": [
-                    {
-                        "id": 1,
-                        "email": "example@example.com",
-                        "username": "example_user",
-                        "first_name": "John",
-                        "last_name": "Doe",
-                        "phone": "1234567890",
-                        "bio": "This is an example bio.",
-                        "avatar_url": "https://example.com/avatar.png",
-                        "user_type": "tenant",
-                        "role": "user",
-                        "is_active": True,
-                        "is_verified": False,
-                        "created_at": "2025-01-01T12:00:00Z",
-                        "updated_at": "2025-01-02T12:00:00Z",
-                        "last_login": "2025-01-03T12:00:00Z",
-                    }
-                ],
+                "users": [get_nested_example(UserRead)],
                 "total": 1,
             }
         }
+    )
+
+
+class Login_data(BaseModel):
+    access_token: str
+    refresh_token: str
+    session_id: str
+    user: UserRead
+
+
+class loginresponse(BaseModel):
+    access_token: str
+    user: UserRead
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "token_type": "bearer",
+                "user": get_nested_example(UserBase),
+            }
+        }
+    )
+
+
+class UserCredentials(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=72)
+
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "example": {"email": "example@example.com", "password": "StrongPass1!"}
+        },
     )
