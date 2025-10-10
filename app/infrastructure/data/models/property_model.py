@@ -1,12 +1,36 @@
 import enum
 from datetime import datetime
+from typing import List
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+)
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.infrastructure.data.database import Base
+
+# --- Association Table ---
+property_amenities = Table(
+    "property_amenities",
+    Base.metadata,
+    Column(
+        "property_id", ForeignKey("properties.id", ondelete="CASCADE"), primary_key=True
+    ),
+    Column(
+        "amenity_id", ForeignKey("amenities.id", ondelete="CASCADE"), primary_key=True
+    ),
+)
 
 
 class PropertyType(enum.Enum):
@@ -24,11 +48,11 @@ class PropertyStatus(enum.Enum):
     RENTED = "rented"
 
 
-class PropertyModel(Base):
+class Property(Base):
     __tablename__ = "properties"
 
     # Primary key
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     # Foreign key to User
     posted_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
@@ -72,6 +96,14 @@ class PropertyModel(Base):
     bathrooms: Mapped[float | None] = mapped_column(Float, nullable=True)
     area_sqft: Mapped[float | None] = mapped_column(Float, nullable=True)
     lot_size_sqft: Mapped[float | None] = mapped_column(Float, nullable=True)
+    parking_spaces: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    heating_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    cooling_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    amenities: Mapped[list["Amenity"]] = relationship(  # noqa: F821
+        secondary="property_amenities",
+        back_populates="properties",
+    )
     year_built: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Timestamps
@@ -84,4 +116,19 @@ class PropertyModel(Base):
 
     # Misc
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    image_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    image_urls: Mapped[list[str] | None] = mapped_column(
+        JSON, nullable=True
+    )  # Comma-separated URLs
+
+
+# --- Amenity Model ---
+class Amenity(Base):
+    __tablename__ = "amenities"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+
+    # Relationship to Property
+    properties: Mapped[List["Property"]] = relationship(  # noqa: F821
+        secondary="property_amenities", back_populates="amenities"
+    )
