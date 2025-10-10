@@ -26,7 +26,7 @@ class UserRole(enum.Enum):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     username: Mapped[str | None] = mapped_column(
         String, unique=True, index=True, nullable=True
@@ -72,6 +72,6 @@ class User(Base):
     )
 
     # Relationship to properties
-    properties: Mapped[List["PropertyModel"]] = relationship(  # noqa: F821
+    properties: Mapped[List["Property"]] = relationship(  # noqa: F821
         back_populates="user", cascade="all, delete-orphan"
     )
