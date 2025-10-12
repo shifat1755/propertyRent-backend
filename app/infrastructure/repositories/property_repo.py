@@ -1,0 +1,62 @@
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from app.infrastructure.data.models.property_model import Amenity, Property
+from app.presentation.schemas.property_schema import PropertyBase
+
+
+class PropertyRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    async def add_property(self, property: PropertyBase) -> Property:
+        amenity_objects = []
+        for amenity_name in property.amenities:
+            amenity = (
+                await self.db.execute(
+                    select(Amenity).where(Amenity.name == amenity_name)
+                )
+            ).scalar_one_or_none()
+
+            if not amenity:
+                amenity = Amenity(name=amenity_name)
+                self.db.add(amenity)
+                await self.db.flush()  # Ensures amenity.id is available
+            amenity_objects.append(amenity)
+        db_property = Property(
+            posted_by=property.posted_by,
+            title=property.title,
+            description=property.description,
+            address=property.address,
+            city=property.city,
+            state=property.state,
+            zip_code=property.zip_code,
+            country=property.country,
+            price=property.price,
+            property_type=property.property_type,
+            status=property.status,
+            bedrooms=property.bedrooms,
+            bathrooms=property.bathrooms,
+            area_sqft=property.area_sqft,
+            lot_size_sqft=property.lot_size_sqft,
+            parking_spaces=property.parking_spaces,
+            heating_type=property.heating_type,
+            cooling_type=property.cooling_type,
+            amenities=amenity_objects,
+            year_built=property.year_built,
+            image_urls=property.image_urls,
+        )
+        try:
+            self.db.add(db_property)
+            await self.db.commit()
+            # Re-fetch with amenities eagerly loaded
+            result = await self.db.execute(
+                select(Property)
+                .options(selectinload(Property.amenities))
+                .where(Property.id == db_property.id)
+            )
+            property_with_amenities = result.scalar_one()
+            return property_with_amenities
+        except Exception as e:
+            self.db.rollback()
+            raise e
