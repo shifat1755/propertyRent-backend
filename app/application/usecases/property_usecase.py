@@ -20,3 +20,10 @@ class PropertyUsecase:
             return res
         except Exception as e:
             raise e
+
+    async def get_properties_by_user(self, user_id: int) -> list[Property]:
+        try:
+            res = await self.repo.get_properties_by_user(user_id)
+            return res
+        except Exception as e:
+            raise e
