@@ -25,3 +25,21 @@ async def add_property(
     response = PropertyResponse.model_validate(res)
     response.amenities = amenities
     return response
+
+
+@propertyRouter.get("/properties/me", response_model=list[PropertyResponse])
+async def get_my_properties(
+    db: AsyncSession = Depends(get_db),
+    sender=Depends(get_current_user),
+):
+    usecase = PropertyUsecase(db)
+    properties = await usecase.get_properties_by_user(int(sender["user_id"]))
+    result = []
+    for property in properties:
+        amenities = [a.name for a in property.amenities] if property.amenities else []
+        property.amenities = []
+        temp = PropertyResponse.model_validate(property)
+        temp.amenities = amenities
+        result.append(temp)
+
+    return result

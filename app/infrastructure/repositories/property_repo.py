@@ -23,6 +23,7 @@ class PropertyRepository:
                 self.db.add(amenity)
                 await self.db.flush()  # Ensures amenity.id is available
             amenity_objects.append(amenity)
+
         db_property = Property(
             posted_by=property.posted_by,
             title=property.title,
@@ -60,3 +61,12 @@ class PropertyRepository:
         except Exception as e:
             self.db.rollback()
             raise e
+
+    async def get_properties_by_user(self, user_id: int) -> list[Property]:
+        stmt = (
+            select(Property)
+            .options(selectinload(Property.amenities))
+            .where(Property.posted_by == user_id)
+        )
+        res = await self.db.execute(stmt)
+        return res.scalars().all()
