@@ -70,3 +70,8 @@ class PropertyRepository:
         )
         res = await self.db.execute(stmt)
         return res.scalars().all()
+
+    async def get_all_properties(self) -> list[Property]:
+        stmt = select(Property).options(selectinload(Property.amenities))
+        res = await self.db.execute(stmt)
+        return res.scalars().all()

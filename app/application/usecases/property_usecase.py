@@ -27,3 +27,10 @@ class PropertyUsecase:
             return res
         except Exception as e:
             raise e
+
+    async def get_all_properties(self) -> list[Property]:
+        try:
+            res = await self.repo.get_all_properties()
+            return res
+        except Exception as e:
+            raise e
