@@ -46,7 +46,7 @@ async def get_my_properties(
 
 
 @propertyRouter.get("/properties", response_model=list[PropertyResponse])
-async def get_my_properties(
+async def get_all_properties(
     db: AsyncSession = Depends(get_db),
 ):
     usecase = PropertyUsecase(db)
