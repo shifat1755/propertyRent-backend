@@ -6,17 +6,13 @@ from app.domain.errors import (
     EmailAlreadyExistsError,
     UsernameAlreadyExistsError,
     UserNotFoundError,
-    WrongCredentials,
 )
 from app.infrastructure.data.models.user_model import User
-from app.infrastructure.data.redis_refresh_token_client import RedisTokenService
 from app.infrastructure.repositories.user_repo import UserRepository
-from app.infrastructure.security.bcrypt_hasher import hash_password, verify_password
+from app.infrastructure.security.bcrypt_hasher import hash_password
 from app.infrastructure.security.jwt import JWTHandler
 from app.presentation.schemas.user_schema import (
-    Login_data,
     UserCreate,
-    UserCredentials,
     UserUpdate,
 )
 
@@ -24,7 +20,6 @@ from app.presentation.schemas.user_schema import (
 class UserUsecase:
     def __init__(self, db: Session):
         self.repo = UserRepository(db)
-        self.redis_token_service = RedisTokenService()
         self.jwt_handler = JWTHandler()
 
     # Create
@@ -80,40 +75,4 @@ class UserUsecase:
             raise UserNotFoundError
         await self.repo.delete_user(db_user)
         await self.repo.db.commit()
-        return
-
-    async def login(self, user_cred=UserCredentials) -> Login_data:
-        db_user = await self.repo.get_user_by_email(user_cred.email)
-        if not db_user:
-            raise UserNotFoundError
-        if not verify_password(user_cred.password, db_user.hashed_password):
-            raise WrongCredentials
-        accesstoken = self.jwt_handler.generate_access_token(
-            subject=str(db_user.id),
-            extra_claims={
-                "role": str(db_user.role),
-                "user_type": str(db_user.user_type),
-            },
-        )
-        refreshtoken = self.jwt_handler.generate_refresh_token(
-            subject=str(db_user.id),
-            extra_claims={
-                "role": str(db_user.role),
-                "user_type": str(db_user.user_type),
-            },
-        )
-
-        session_id = await self.redis_token_service.store(
-            user_id=str(db_user.id), refresh_token=refreshtoken
-        )
-
-        return Login_data(
-            access_token=accesstoken,
-            refresh_token=refreshtoken,
-            session_id=session_id,
-            user=db_user,
-        )
-
-    async def logout(self, user_id: str, session_id: str) -> None:
-        await self.redis_token_service.revoke(user_id=user_id, session_id=session_id)
         return
