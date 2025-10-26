@@ -1,5 +1,3 @@
-import uuid
-
 from redis.asyncio import Redis
 
 from app.config import JWTConfig, RedisConfig
@@ -16,11 +14,10 @@ class RedisTokenService:
         user_id: str,
         refresh_token: str,
         ttl: int = 60 * 60 * 24 * JWTConfig.REFRESH_TOKEN_EXPIRE_DAYS,
+        session_id: str | None = None,
     ) -> str:
-        session_id = str(uuid.uuid4())
         key = f"{user_id}:{session_id}"
         await self.redis.setex(key, ttl, refresh_token)
-        return session_id
 
     async def get(self, user_id: str, session_id: str) -> str | None:
         key = f"{user_id}:{session_id}"
@@ -29,3 +26,7 @@ class RedisTokenService:
     async def revoke(self, user_id: str, session_id: str) -> None:
         key = f"{user_id}:{session_id}"
         await self.redis.delete(key)
+
+    async def get_refresh_token(self, user_id: str, session_id: str) -> str | None:
+        key = f"{user_id}:{session_id}"
+        return await self.redis.get(key)

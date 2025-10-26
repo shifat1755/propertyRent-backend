@@ -18,7 +18,6 @@ async def get_current_user(
 
     jwt_handler = JWTHandler()
     payload = jwt_handler.decode_token(token)
-
     if not payload or payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
