@@ -35,7 +35,7 @@ async def login_user(
             httponly=True,
             secure=True,
             samesite="Strict",
-            path="/auth/refresh",
+            path="/api/auth/refresh",
         )
         # Set session_id in HttpOnly cookie
         response.set_cookie(
@@ -44,7 +44,7 @@ async def login_user(
             httponly=True,
             secure=True,
             samesite="Strict",
-            path="/",
+            path="/api/",
         )
 
         # Return access token, session_id, user info in JSON
@@ -64,14 +64,13 @@ async def login_user(
 @authRouter.post("/logout")
 async def logout_user(
     session_id: str = Cookie(None),
-    db: AsyncSession = Depends(get_db),
     sender=Depends(get_current_user),
 ):
-    print("sender__", sender)
     if not session_id:
         raise HTTPException(status_code=401, detail="No session_id cookie found")
 
-    usecase = AuthUsecase(db)
+    usecase = AuthUsecase(None)
+    print("sender__", sender)
     try:
         await usecase.logout(sender["user_id"], session_id)
     except Exception:
@@ -81,22 +80,40 @@ async def logout_user(
     return {"detail": "Logged out successfully"}
 
 
-# @authRouter.post("/refresh")
-# async def refresh(response: Response, refresh_token: str | None = Cookie(default=None)):
-#     if not refresh_token:
-#         raise HTTPException(status_code=401, detail="No refresh token provided")
+@authRouter.post("/refresh")
+async def refresh(
+    response: Response,
+    refresh_token: str = Cookie(default=None),
+    session_id: str = Cookie(default=None),
+):
+    if not session_id:
+        raise HTTPException(status_code=401, detail="No session_id provided")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="No refresh token provided")
 
-#     # verify and decode token
-#     new_access, new_refresh = verify_and_refresh(refresh_token)
+    usecase = AuthUsecase(None)
+    # verify and decode token
+    new_access, new_refresh = await usecase.get_fresh_tokens(
+        session_id=session_id, refresh_token=refresh_token
+    )
 
-#     # set new refresh cookie
-#     response.set_cookie(
-#         key="refresh_token",
-#         value=new_refresh,
-#         httponly=True,
-#         secure=True,
-#         samesite="Strict",
-#         path="/auth/refresh",
-#     )
+    # Set refresh token in HttpOnly cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh,
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+        path="/api/auth/refresh",
+    )
+    # Set session_id in HttpOnly cookie
+    response.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+        path="/api/",
+    )
 
-#     return {"access_token": new_access}
+    return {"access_token": new_access}

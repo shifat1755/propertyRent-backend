@@ -1,3 +1,5 @@
+import uuid
+
 from sqlalchemy.orm import Session
 
 from app.domain.errors import (
@@ -40,9 +42,9 @@ class AuthUsecase:
                 "user_type": str(db_user.user_type),
             },
         )
-
-        session_id = await self.redis_token_service.store(
-            user_id=str(db_user.id), refresh_token=refreshtoken
+        session_id = str(uuid.uuid4())
+        await self.redis_token_service.store(
+            user_id=str(db_user.id), refresh_token=refreshtoken, session_id=session_id
         )
 
         return Login_data(
@@ -55,3 +57,38 @@ class AuthUsecase:
     async def logout(self, user_id: str, session_id: str) -> None:
         await self.redis_token_service.revoke(user_id=user_id, session_id=session_id)
         return
+
+    async def get_fresh_tokens(
+        self, session_id: str, refresh_token: str
+    ) -> tuple[str, str]:
+        payload = self.jwt_handler.decode_token(refresh_token)
+        user_id = payload.get("sub")
+        stored_refresh_token = await self.redis_token_service.get_refresh_token(
+            user_id=user_id, session_id=session_id
+        )
+        if stored_refresh_token != refresh_token:
+            raise WrongCredentials
+
+        new_access_token = self.jwt_handler.generate_access_token(
+            subject=str(user_id),
+            extra_claims={
+                "role": payload.get("roles", "user"),
+                "user_type": payload.get("user_type", "tenant"),
+            },
+        )
+        new_refresh_token = self.jwt_handler.generate_refresh_token(
+            subject=str(user_id),
+            extra_claims={
+                "role": payload.get("roles", "user"),
+                "user_type": payload.get("user_type", "tenant"),
+            },
+        )
+
+        # Update refresh token in Redis
+        await self.redis_token_service.store(
+            user_id=str(user_id),
+            refresh_token=new_refresh_token,
+            session_id=session_id,
+        )
+
+        return (new_access_token, new_refresh_token)
