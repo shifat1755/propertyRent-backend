@@ -11,6 +11,11 @@
   - Signup, Get User by ID, List Users, Update User, Delete User, Login.
 - Business logic and database operations for user management.
 
+#### Property Management
+- Property CRUD operations:
+  - Add property, Get property by ID, Update Property, Delete Property.
+- Business logic and database operations for property management.
+
 #### Database Integration
 - Async database setup with SQLAlchemy.
 - Alembic migrations for schema management.
@@ -24,7 +29,6 @@
 #### Error Handling
 - Custom exceptions for user-related errors.
 
-### ToDo:
+### Coming:
 - LRU Cache implementation
-- Property Management(CRUD, DB, etc..)
-- Refactored User Module
+
