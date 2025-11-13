@@ -1,13 +1,7 @@
-version: "3.8"
-
 volumes:
   certs:
     driver: local
   esdata01:
-    driver: local
-  metricbeatdata01:
-    driver: local
-  filebeatdata01:
     driver: local
   logstashdata01:
     driver: local
@@ -50,8 +44,8 @@ services:
         fi;
         echo "Setting file permissions"
         chown -R root:root config/certs;
-        find . -type d -exec chmod 750 \{\} \;;
-        find . -type f -exec chmod 640 \{\} \;;
+        find . -type d -exec chmod 755 \{\} \;;
+        find . -type f -exec chmod 644 \{\} \;;
         echo "Waiting for Elasticsearch availability";
         # until curl -s --cacert config/certs/ca/ca.crt https://es01:9200 | grep -q "missing authentication credentials"; do sleep 30; done;
         echo "All done!";
@@ -61,6 +55,7 @@ services:
       interval: 1s
       timeout: 5s
       retries: 120
+
   es01:
     depends_on:
       setup:
@@ -104,3 +99,39 @@ services:
       interval: 10s
       timeout: 10s
       retries: 120
+
+  logstash01:
+    depends_on:
+      es01:
+        condition: service_healthy
+    image: docker.elastic.co/logstash/logstash:${STACK_VERSION}
+    labels:
+      co.elastic.logs/module: logstash
+    # user: "0"
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Linux: allows container to access host
+    command: >
+      bash -c '
+        if [ ! -f /usr/share/logstash/logstash-core/lib/jars/postgresql-42.7.8.jar ]; then
+          echo "Downloading PostgreSQL JDBC driver...";
+          mkdir -p /usr/share/logstash/logstash-core/lib/jars;
+          curl -L -o /usr/share/logstash/logstash-core/lib/jars/postgresql-42.7.8.jar \
+            https://jdbc.postgresql.org/download/postgresql-42.7.8.jar;
+          chown -R 1000:1000 /usr/share/logstash/logstash-core/lib/jars;
+        fi;
+        exec /usr/local/bin/docker-entrypoint'
+    volumes:
+      - certs:/usr/share/logstash/certs
+      - logstashdata01:/usr/share/logstash/data
+      - "./logstash/logstash_ingest_data/:/usr/share/logstash/ingest_data/"
+      - "./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro"
+    environment:
+      - xpack.monitoring.enabled=false
+      - ELASTIC_USER=elastic
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - ELASTIC_HOSTS=https://es01:9200
+      - DB_HOST=host.docker.internal # Linux: allows container to access host
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
