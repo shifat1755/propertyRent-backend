@@ -29,6 +29,6 @@
 #### Error Handling
 - Custom exceptions for user-related errors.
 
-### Coming:
-- LRU Cache implementation
+### Ongoing:
+- ELK integration
 
