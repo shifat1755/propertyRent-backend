@@ -5,14 +5,45 @@ volumes:
     driver: local
   logstashdata01:
     driver: local
+  toletDE-db-data:
 
 networks:
   default:
-    name: elastic
+    name: toletDE
     external: false
 
 services:
-  setup:
+  db:
+    image: postgres:alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - toletDE-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 4
+      start_period: 5s
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret123
+      POSTGRES_DB: toletDE
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 4
+      start_period: 5s
+    env_file:
+      - .env
+
+  es_setup:
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     volumes:
       - certs:/usr/share/elasticsearch/config/certs
@@ -54,11 +85,11 @@ services:
       test: ["CMD-SHELL", "[ -f config/certs/es01/es01.crt ]"]
       interval: 1s
       timeout: 5s
-      retries: 120
+      retries: 12
 
   es01:
     depends_on:
-      setup:
+      es_setup:
         condition: service_healthy
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
     labels:
@@ -68,11 +99,11 @@ services:
       - esdata01:/usr/share/elasticsearch/data
     ports:
       - ${ES_PORT}:9200
+    env_file:
+      - .env
     environment:
       - node.name=es01
-      - cluster.name=${CLUSTER_NAME}
       - discovery.type=single-node
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - bootstrap.memory_lock=true
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=true
@@ -84,7 +115,6 @@ services:
       - xpack.security.transport.ssl.certificate=certs/es01/es01.crt
       - xpack.security.transport.ssl.certificate_authorities=certs/ca/ca.crt
       - xpack.security.transport.ssl.verification_mode=certificate
-      - xpack.license.self_generated.type=${LICENSE}
     mem_limit: ${ES_MEM_LIMIT}
     ulimits:
       memlock:
@@ -98,7 +128,7 @@ services:
         ]
       interval: 10s
       timeout: 10s
-      retries: 120
+      retries: 5
 
   logstash01:
     depends_on:
@@ -108,8 +138,6 @@ services:
     labels:
       co.elastic.logs/module: logstash
     # user: "0"
-    extra_hosts:
-      - "host.docker.internal:host-gateway" # Linux: allows container to access host
     command: >
       bash -c '
         if [ ! -f /usr/share/logstash/logstash-core/lib/jars/postgresql-42.7.8.jar ]; then
@@ -123,18 +151,13 @@ services:
     volumes:
       - certs:/usr/share/logstash/certs
       - logstashdata01:/usr/share/logstash/data
-      - "./logstash/logstash_ingest_data/:/usr/share/logstash/ingest_data/"
       - "./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro"
+    env_file:
+      - .env
     environment:
       - xpack.monitoring.enabled=false
       - ELASTIC_USER=elastic
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - ELASTIC_HOSTS=https://es01:9200
-      - DB_HOST=host.docker.internal # Telling container to use host machine's database
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
 
   app:
     build:
@@ -142,24 +165,14 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - .:/app
     environment:
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=host.docker.internal # Telling container to use host machine's database
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_ALGORITHM=${JWT_ALGORITHM}
-      - JWT_ACCESS_EXPIRE_MINUTES=${JWT_ACCESS_EXPIRE_MINUTES}
-      - JWT_REFRESH_EXPIRE_DAYS=${JWT_REFRESH_EXPIRE_DAYS}
-      - REDIS_HOST=host.docker.internal
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_DB_REFRESH_TOKENS=${REDIS_DB_REFRESH_TOKENS}
-      - REDIS_DB_LRU_CACHE=${REDIS_DB_LRU_CACHE}
+      - .env
     depends_on:
       es01:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      db:
         condition: service_healthy
