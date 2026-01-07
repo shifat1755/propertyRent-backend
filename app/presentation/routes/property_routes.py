@@ -1,12 +1,20 @@
+from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter, Depends
 
 # from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.usecases.property_search_usecase import PropertySearchUsecase
 from app.application.usecases.property_usecase import PropertyUsecase
 from app.infrastructure.data.database import get_db
+from app.infrastructure.search.elastic_client import get_es_client
 from app.presentation.routes.dependencies import get_current_user
-from app.presentation.schemas.property_schema import PropertyBase, PropertyResponse
+from app.presentation.schemas.property_schema import (
+    PropertyBase,
+    PropertyResponse,
+    PropertySearchParams,
+    PropertySearchResult,
+)
 
 propertyRouter = APIRouter()
 
@@ -59,4 +67,18 @@ async def get_all_properties(
         temp.amenities = amenities
         result.append(temp)
 
+    return result
+
+
+@propertyRouter.get(
+    "/properties/search",
+    response_model=PropertySearchResult,
+    summary="Full-text and filtered search for properties",
+)
+async def search_properties(
+    params: PropertySearchParams = Depends(),
+    es_client: AsyncElasticsearch = Depends(get_es_client),
+):
+    search_usecase = PropertySearchUsecase(es_client)
+    result = await search_usecase.search(params)
     return result
