@@ -151,6 +151,7 @@ services:
     volumes:
       - certs:/usr/share/logstash/certs
       - logstashdata01:/usr/share/logstash/data
+      - "./logstash/logstash_ingest_data:/usr/share/logstash/ingest_data:ro"
       - "./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro"
     env_file:
       - .env

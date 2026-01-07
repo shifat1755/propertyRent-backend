@@ -23,4 +23,6 @@ SELECT
   updated_at,
   is_featured,
   image_urls::text AS image_urls
-FROM properties;
+FROM properties
+WHERE updated_at >= CAST(:sql_last_value AS TIMESTAMP) - INTERVAL '1 second'
+ORDER BY updated_at ASC;
