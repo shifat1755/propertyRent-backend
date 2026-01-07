@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.sql import func
 
 from app.infrastructure.data.models.property_model import Amenity, Property
 from app.presentation.schemas.property_schema import PropertyBase
@@ -46,6 +47,7 @@ class PropertyRepository:
             amenities=amenity_objects,
             year_built=property.year_built,
             image_urls=property.image_urls,
+            updated_at=func.now(),
         )
         try:
             self.db.add(db_property)
