@@ -52,3 +52,21 @@ class RedisConfig:
     @classmethod
     def get_cache_url(cls) -> str:
         return f"redis://{cls.REDIS_HOST}:{cls.REDIS_PORT}/{cls.REDIS_DB_CACHE}"
+
+
+class ElasticsearchConfig:
+    """Elasticsearch-related configuration."""
+
+    HOST = os.getenv("ELASTIC_HOST", "localhost")
+    PORT = os.getenv("ES_PORT", os.getenv("ELASTIC_PORT", "9200"))
+    SCHEME = os.getenv("ELASTIC_SCHEME", "https")
+    USERNAME = os.getenv("ELASTIC_USERNAME", os.getenv("ELASTIC_USER", "elastic"))
+    PASSWORD = os.getenv("ELASTIC_PASSWORD")
+    VERIFY_CERTS = os.getenv("ELASTIC_VERIFY_CERTS", "true").lower() == "true"
+    CA_CERT_PATH = os.getenv("ELASTIC_CA_CERT")
+    PROPERTY_INDEX = os.getenv("ELASTIC_PROPERTY_INDEX", "properties")
+    REQUEST_TIMEOUT = float(os.getenv("ELASTIC_TIMEOUT", 10))
+
+    @classmethod
+    def get_url(cls) -> str:
+        return f"{cls.SCHEME}://{cls.HOST}:{cls.PORT}"

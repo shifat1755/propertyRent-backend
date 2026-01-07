@@ -9,4 +9,5 @@ passlib == 1.7.4
 bcrypt  == 5.0.0
 redis[asyncio]==6.4.0
 PyJWT==2.10.1
+elasticsearch[async]==8.15.1
 
