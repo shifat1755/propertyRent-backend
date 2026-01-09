@@ -28,6 +28,11 @@ class PropertySearchService:
         items: List[PropertyResponse] = []
         for hit in hits.get("hits", []):
             source = hit.get("_source", {})
+
+            # Remove ES metadata fields
+            source.pop("@timestamp", None)
+            source.pop("@version", None)
+
             normalized = self._normalize_source(source)
             items.append(PropertyResponse.model_validate(normalized))
 

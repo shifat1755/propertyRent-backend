@@ -57,7 +57,7 @@ class RedisConfig:
 class ElasticsearchConfig:
     """Elasticsearch-related configuration."""
 
-    HOST = os.getenv("ELASTIC_HOST", "localhost")
+    HOST = os.getenv("ELASTIC_HOST", "es01")
     PORT = os.getenv("ES_PORT", os.getenv("ELASTIC_PORT", "9200"))
     SCHEME = os.getenv("ELASTIC_SCHEME", "https")
     USERNAME = os.getenv("ELASTIC_USERNAME", os.getenv("ELASTIC_USER", "elastic"))

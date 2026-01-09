@@ -168,6 +168,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      - certs: /usr/share/elasticsearch/config/certs :ro
     environment:
       - .env
     depends_on:
