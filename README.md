@@ -1,39 +1,75 @@
 # **Under Construction..**
 
+This is the backend for a property rental platform. The backend is built with **FastAPI** and its ecosystem (**Pydantic, SQLAlchemy, Alembic**), integrates **Elasticsearch** for full-text search functionality, uses **PostgreSQL** for data storage, and **Redis** for caching and token management.
+
 ### Ongoing:
 
-- **ELK Integration**:
-  - Elasticsearch for For full-text search and analytics.
-  - For data ingestion and transformation.
+- **Backend work is currently paused to focus on the client side.**
 
-### Completed Features:
+---
 
-- **User Authentication and Authorization**:
+## **Completed Features**
 
-  - JWT-based authentication for secure access.
-  - Password hashing and verification using bcrypt.
-  - Authorization for validating user tokens to access protected routes.
+### **Authentication**
 
-- **User Management**:
+- User registration and login with JWT-based authentication.
+- Password hashing using **bcrypt** for secure storage.
 
-  - CRUD operations for users: Signup, Get User by ID, List Users, Update User, Delete User, Login.
+### **Property Management**
 
-- **Property Management**:
+- CRUD operations for property listings.
+- Property data stored in **PostgreSQL**.
 
-  - CRUD operations for properties: Add Property, Get Properties, Update Property, Delete Property.
+### **Full-Text Search**
 
-- **Database**:
+- Full-text search for properties using **Elasticsearch**.
+- Search across fields like `title` and `description` with support for:
+  - Fuzzy matching (handles typos).
+  - Highlighting matched terms in the search results.
 
-  - Async Postgres setup with SQLAlchemy.
-  - Alembic migrations for schema management.
+### **Caching**
 
-- **Redis Integration**:
+- **Redis** is used for:
+  - Caching frequently accessed data.
+  - Managing refresh tokens for authentication.
 
-  - Refresh token storage and revocation.
+### **Error Handling**
 
-- **API Design**:
+- Custom error classes for consistent error responses.
 
-  - Input/output schemas for request validation and response formatting using Pydantic.
+### **Data Ingestion**
 
-- **Error Handling**:
-  - Custom exceptions for user-related errors.
+- **Logstash** is used to ingest property data into Elasticsearch.
+
+---
+
+### **Modular Architecture**
+
+- Clean and modular code structure:
+  - **Domain Layer**: Defines entities and business rules.
+  - **Application Layer**: Contains use cases for core business logic.
+  - **Infrastructure Layer**: Handles data access, security, and external integrations.
+  - **Presentation Layer**: Defines API routes and request/response schemas.
+
+## **How to Run the App Locally**
+
+### **Prerequisites**
+
+1. Install **Docker** and **Docker Compose** on your system.
+
+---
+
+### **Steps to Run**
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/shifat1755/propertyRent-backend.git
+   cd propertyRent-backend
+   ```
+2. **Start the Application Use Docker Compose to build and start all the service**
+
+   ```bash
+   docker-compose up --build
+   ```
+
+Open your browser and navigate to http://127.0.0.1:8000/docs to explore the API documentation.
